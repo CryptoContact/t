@@ -1,0 +1,32 @@
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GEMINI_API_KEY, GEMINI_ENDPOINT, SYSTEM_INIT_MESSAGE, SYSTEM_INIT_MESSAGE_ROLE } = require('./config');
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY, GEMINI_ENDPOINT);
+
+async function generateGeminiResponse(prompt, conversationHistory, model) {
+  try {
+    const geminiModel = genAI.getGenerativeModel({ model: model });
+
+    const chat = geminiModel.startChat({
+      history: [
+        {
+          role: SYSTEM_INIT_MESSAGE_ROLE === 'system' ? 'user' : SYSTEM_INIT_MESSAGE_ROLE,
+          parts: [{ text: SYSTEM_INIT_MESSAGE }],
+        },
+        ...conversationHistory.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }],
+        })),
+      ],
+    });
+
+    const result = await chat.sendMessage(prompt);
+    const response = result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error in generateGeminiResponse:', error);
+    throw new Error(`Failed to generate Gemini response: ${error.message}`);
+  }
+}
+
+module.exports = { generateGeminiResponse };
